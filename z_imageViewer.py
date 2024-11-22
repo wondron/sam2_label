@@ -4,6 +4,7 @@ from PyQt5.QtGui import QPainter, QMouseEvent, QWheelEvent, QPixmap, QPen, QRadi
 from PyQt5.QtCore import Qt, QRectF, QPointF
 from PyQt5.QtWidgets import QApplication
 import sys
+import numpy as np
 
 
 style_sheet = """
@@ -44,7 +45,10 @@ class ImageViewer(QGraphicsView):
         self.positive_pts = []
         self.negetive_pts = []
         self.circleItems = []
-        
+
+        #PATHITEM
+        self.path_item = None
+
         #位置label
         self.dragging = False
         self.position_label = QLabel()
@@ -59,7 +63,9 @@ class ImageViewer(QGraphicsView):
         self.position_label.show()
         
     def get_label_pts(self):
-        return self.positive_pts, self.negetive_pts
+        posite_pts = np.array([[int(qp.x()), int(qp.y())] for qp in self.positive_pts])
+        negetv_pts = np.array([[int(qp.x()), int(qp.y())] for qp in self.negetive_pts])
+        return posite_pts, negetv_pts
         
     def set_sam_mode(self, enable):
         self.rect_enable = not enable
@@ -73,37 +79,33 @@ class ImageViewer(QGraphicsView):
         super().resizeEvent(event)
         self.position_label.move(10, int(self.height() - self.position_label.height() * 1.5))
         
-    def display_contours(self, contours):
+    def display_edge(self, edge_image):
         try:
-            if contours is not None and len(contours) > 0:
-                for contour in contours:
-                    contour_item = QGraphicsPathItem()
-                    path = QPainterPath()
-                    first_point = True
-                    for point in contour:
-                        x, y = point[0]
-                        if first_point:
-                            path.moveTo(x, y)
-                            first_point = False
-                        else:
-                            path.lineTo(x, y)
-                    path.closeSubpath()
-                    contour_item.setPath(path)
-                    contour_item.setPen(QPen(Qt.green, 2, Qt.SolidLine))
-                    self.scene.addItem(contour_item)
+            if edge_image is None:
+                return
+
+            self.clear_flag()
+            path_item = QPainterPath()
+            y_coords, x_coords = np.nonzero(edge_image)
+            for x, y in zip(x_coords, y_coords):
+                path_item.addRect(x, y, 1, 1)
+
+            self.path_item = QGraphicsPathItem(path_item)
+            pen = QPen(Qt.green)
+            pen.setWidth(2)
+            self.path_item.setPen(pen)
+            self.scene.addItem(self.path_item)     
         except Exception as e:
-            print(f"display contours出错: {e}")
-        
+            print(f"显示边缘图像出错: {e}")
+
     def display_image(self, pixmap):
         try:
-            if self.rect_item:
-                self.scene.removeItem(self.rect_item)
-            self.rect_item = None
-            self.rect_info = None
+            self.clear_flag()
             self.scene.clear()
             self.pixmap_item = QGraphicsPixmapItem(pixmap)
             self.scene.addItem(self.pixmap_item)
             self.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+
             # 添加红框
             self.add_red_border()   
             pixmap_width = pixmap.width()
@@ -120,6 +122,15 @@ class ImageViewer(QGraphicsView):
             self.circleItems.clear()
             self.negetive_pts.clear()
             self.positive_pts.clear()
+
+            if self.path_item:
+                self.scene.removeItem(self.path_item)
+                self.path_item = None
+            
+            if self.rect_item:
+                self.scene.removeItem(self.rect_item)
+                self.rect_item = None
+                
         except Exception as e:
             print(f"display image出错: {e}")
         

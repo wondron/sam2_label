@@ -5,6 +5,10 @@ from PyQt5.QtGui import QPixmap, QImage, QTextCursor
 from PyQt5.QtCore import pyqtSignal, QThread, QUrl, QByteArray, Qt
 from z_imageViewer import ImageViewer
 from z_showfileTol import FileReview
+import numpy as np
+from z_samTool import SAM2ImageProcessor
+import cv2
+from PIL import Image
 
 qLineEditStyle = """
             QLineEdit {
@@ -17,10 +21,15 @@ qLineEditStyle = """
         """
 
 class Window(QWidget):
+
     def __init__(self):
         super().__init__()
         self.initUI()   
         self.image_paths = dict()
+        #sam 配置
+        checkpoint = r"D:\\python\\sam2_label\\checkpoints\\sam2.1_hiera_base_plus.pt"
+        model_cfg  = r"D:\\python\\sam2_label\\sam2\\configs\\sam2.1\\sam2.1_hiera_b+.yaml"
+        self.samprocessor = SAM2ImageProcessor(checkpoint, model_cfg)
 
     def initUI(self):
         self.setWindowTitle('食材标注软件')
@@ -59,11 +68,6 @@ class Window(QWidget):
         self.logger = QTextEdit()
         left_layout.addWidget(self.logger)
         left_layout.setStretch(1, 1)
-        
-    def write(self, text):
-        cursor = self.logger.textCursor()
-        cursor.insertText(text)
-        self.logger.moveCursor(QTextCursor.End)
             
     def initUIMidl(self):
         # 创建中间的窗口
@@ -95,11 +99,19 @@ class Window(QWidget):
         self.btn_clear = QPushButton("清空标记")
         self.btn_clear.clicked.connect(self.on_clear_flag)
         right_layout.addWidget(self.btn_clear)
+
+        self.btn_sam_label = QPushButton("标注")
+        self.btn_sam_label.clicked.connect(self.on_btn_sam_label)
+        right_layout.addWidget(self.btn_sam_label)
         
         # 创建一个竖直空白占用伸缩杆
         stretch_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         right_layout.addItem(stretch_spacer)
         
+    def write(self, text):
+        cursor = self.logger.textCursor()
+        cursor.insertText(text)
+        self.logger.moveCursor(QTextCursor.End)
         
     def on_btn_filePath_select(self):
         options = QFileDialog.Options()
@@ -126,6 +138,24 @@ class Window(QWidget):
         self.imgviewer.display_image(pixmap)
         self.item_index = item_index
         self.cur_image_path = item_name
+
+
+    def on_btn_sam_label(self):
+        posipts, negepts = self.imgviewer.get_label_pts()
+        result = np.vstack((posipts, negepts))
+
+        aaa = np.ones(posipts.shape[0])
+        bbb = np.ones(negepts.shape[0]) * -1
+        labels = np.hstack((aaa, bbb))
+
+        image_path = list(self.image_paths.values())[self.item_index]
+        image = Image.open(image_path)
+        contours = self.samprocessor.process_image(image,  point_coords=result, point_labels=labels)
+        contours = (contours * 255).astype(np.uint8)
+        self.imgviewer.display_edge(contours)
+
+        return result, labels
+
     
     def on_clear_flag(self):
         self.imgviewer.clear_flag()
