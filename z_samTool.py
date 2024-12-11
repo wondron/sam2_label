@@ -41,9 +41,9 @@ class SAM2ImageProcessor:
 
     
 if __name__ == "__main__":
-    checkpoint = r"D:\\python\\sam2_label\\checkpoints\\sam2.1_hiera_base_plus.pt"
-    model_cfg  = r"D:\\python\\sam2_label\\sam2\\configs\\sam2.1\\sam2.1_hiera_b+.yaml"
-    image_path = r'E:/dataset/鲫鱼/200_00fb306e03d311f5c33830ab89f65c5b.jpg'
+    checkpoint = "D:/python/sam2_label/checkpoints/sam2.1_hiera_base_plus.pt"
+    model_cfg  = "D:/python/sam2_label/sam2/configs/sam2.1/sam2.1_hiera_b+.yaml"
+    image_path = 'E:/dataset/鲫鱼/200_00fb306e03d311f5c33830ab89f65c5b.jpg'
     image_data = Image.open(image_path)
     numpy_image = np.array(image_data)
 
