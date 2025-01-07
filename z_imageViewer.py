@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsRectItem, QGraphicsPa
 from PyQt5.QtGui import QPainter, QMouseEvent, QWheelEvent, QPixmap, QPen, QRadialGradient, QPainterPath
 from PyQt5.QtCore import Qt, QRectF, QPointF
 from PyQt5.QtWidgets import QApplication
-import sys
+import sys, cv2
 import numpy as np
 
 
@@ -66,6 +66,33 @@ class ImageViewer(QGraphicsView):
         posite_pts = np.array([[int(qp.x()), int(qp.y())] for qp in self.positive_pts])
         negetv_pts = np.array([[int(qp.x()), int(qp.y())] for qp in self.negetive_pts])
         return posite_pts, negetv_pts
+    
+    def set_label_pts(self, posite_pts, negetv_pts):
+        self.clear_flag()
+        
+        for pt in posite_pts:
+            self.positive_pts.append(QPointF(pt[0], pt[1]))
+            radius = self.show_circle_radius
+            circleItem = QGraphicsEllipseItem(pt[0] - radius/2.0, pt[1] - radius/2.0, radius, radius)
+            self.circleItems.append(circleItem)
+            brush = QRadialGradient(pt[0], pt[1], radius/2.0)
+            brush.setColorAt(0, Qt.green)
+            brush.setColorAt(1, Qt.transparent)
+            circleItem.setBrush(brush)
+            circleItem.setPen(QPen(Qt.transparent))  # 外接圆的外径变成透明
+            self.scene.addItem(circleItem)
+
+        for pt in negetv_pts:
+            self.negetive_pts.append(QPointF(pt[0], pt[1]))
+            radius = self.show_circle_radius
+            circleItem = QGraphicsEllipseItem(pt[0] - radius/2.0, pt[1] - radius/2.0, radius, radius)
+            self.circleItems.append(circleItem)
+            brush = QRadialGradient(pt[0], pt[1], radius/2.0)
+            brush.setColorAt(0, Qt.red)
+            brush.setColorAt(1, Qt.transparent)
+            circleItem.setBrush(brush)
+            circleItem.setPen(QPen(Qt.transparent))  # 外接圆的外径变成透明
+            self.scene.addItem(circleItem)
         
     def set_sam_mode(self, enable):
         self.rect_enable = not enable
@@ -263,11 +290,20 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ImageViewer()
     window.set_sam_mode(True)
-    image_path = r".\model\test.jpg"
+    image_path = 'E:/dataset/鲫鱼/200_00fb306e03d311f5c33830ab89f65c5b.jpg'
     pixmap = QPixmap(image_path)
     if pixmap.isNull():
         print(f"无法加载图像: {image_path}")
     else:
         window.display_image(pixmap)
         window.show()
+
+    # 读取hehe.bmp图像
+        image_path = "hehe.bmp"
+        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        image_np = np.array(image)
+        window.display_edge(image_np)
+
+
+
     sys.exit(app.exec_())
