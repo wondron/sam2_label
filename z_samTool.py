@@ -19,6 +19,24 @@ class SAM2ImageProcessor:
         uint8_array = (mask_array * 255).astype(np.uint8)
         return uint8_array
     
+    
+    def process_image_box(self, image_data, box_list):
+        # 创建边界框数组
+        box = np.array(box_list)
+        
+        self.predictor.set_image(image_data)
+        masks, _, _ = self.predictor.predict(
+            point_coords=None,  # 不使用点
+            point_labels=None,  # 不使用点标签
+            box=box,            # 使用边界框
+            multimask_output=False,
+        )
+        mask_array = masks[0]
+        uint8_array = (mask_array * 255).astype(np.uint8)
+        return uint8_array
+    
+    
+    
     def get_smooth_image(self, input_mat, ratio = 100, area_ratio = 10, filter_area = 100):
         height, width = input_mat.shape
         kernel_size = (int(width/ratio), int(height/ratio))
@@ -46,20 +64,20 @@ class SAM2ImageProcessor:
 
         # 使用Canny算子获取边缘
         edges = cv2.Canny(invert_image, 100, 200)
-        return edges
+        return edges, invert_image
 
     def detect(self, image_data, point_coords, point_labels, ratio = 100, area_ratio = 10, filter_area = 100):
         mask_mat = self.process_image(image_data, point_coords, point_labels)
-        filled_mat = self.get_smooth_image(mask_mat, ratio, area_ratio, filter_area)
-        return filled_mat
+        filled_mat, fill_mat = self.get_smooth_image(mask_mat, ratio, area_ratio, filter_area)
+        return filled_mat, fill_mat
 
 
 
     
 if __name__ == "__main__":
-    checkpoint = "D:/python/sam2_label/checkpoints/sam2.1_hiera_base_plus.pt"
-    model_cfg  = "D:/python/sam2_label/sam2/configs/sam2.1/sam2.1_hiera_b+.yaml"
-    image_path = 'E:/dataset/鲫鱼/200_00fb306e03d311f5c33830ab89f65c5b.jpg'
+    checkpoint = "D:/01-code/00-python/sam2_label/checkpoints/sam2.1_hiera_base_plus.pt"
+    model_cfg  = "D:/01-code/00-python/sam2_label/sam2/configs/sam2.1/sam2.1_hiera_b+.yaml"
+    image_path = r'D:\01-code\00-python\sam2_label\output_image.jpg'
     image_data = Image.open(image_path)
     numpy_image = np.array(image_data)
 
@@ -72,5 +90,7 @@ if __name__ == "__main__":
                     [3647, 1197]]
     labels = [ 1,  1,  1,  1,  1,  1,  1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
 
-    contours = processor.detect(image_data, point_coords=contours_pts, point_labels=labels)
-    cv2.imwrite("hehe.bmp", contours)
+    height, width = numpy_image.shape[:2]
+    print(f"图像尺寸: {width}x{height}")
+    mask_mat = processor.process_image_box(image_data, [0, 0, width, height])
+    cv2.imwrite("haha.bmp", mask_mat)

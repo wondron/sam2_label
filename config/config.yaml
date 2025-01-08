@@ -1,0 +1,6 @@
+DINO_SERVER:
+    api_url: 'http://8.149.134.97:8688/process/'
+    box_thre: 0.2
+    text_thre: 0.25
+    ROI_Scale: 1.1
+    filter_Scale: 10

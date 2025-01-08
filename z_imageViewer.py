@@ -19,7 +19,6 @@ style_sheet = """
             font-weight: bold;
         """
 
-
 class ImageViewer(QGraphicsView):
     def __init__(self):
         super().__init__()
