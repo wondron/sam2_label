@@ -20,14 +20,12 @@ class HyperData:
             # 将数据立方体转换为RGB图像
             rgb_image = spectral.get_rgb(img, (29, 19, 9))  # 使用常见的波段组合
             # 将浮点型数据转换为8位整型
-            
             rgb_image = (rgb_image * 255).astype(np.uint8)
-            
             
             return img, rgb_image, np.array(img.bands.centers)
         except Exception as e:
             print(f"读取hdr文件失败: {str(e)}")
-            return None
+            return None, None, None
     
     def extract_band(self, data_cube, mask_mat):
         mask_array = np.array(mask_mat) > 0 
@@ -44,7 +42,7 @@ class HyperData:
 if __name__ == '__main__':
     hdr_path = r'D:\00-dataset\高光谱\号角酥（生熟左边两个）.hdr'
     hyper_data = HyperData()
-    data_cube, rgb_data = hyper_data.read_hdr_file(hdr_path)
+    data_cube, rgb_data, _ = hyper_data.read_hdr_file(hdr_path)  # 添加第三个返回值
     mask_data = cv2.imread('mask.png', cv2.IMREAD_GRAYSCALE)
     a, _, _ = hyper_data.extract_band(data_cube, mask_data)
     print(a)

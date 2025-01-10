@@ -19,6 +19,7 @@ style_sheet = """
             font-weight: bold;
         """
 
+
 class ImageViewer(QGraphicsView):
     def __init__(self):
         super().__init__()
@@ -302,7 +303,5 @@ if __name__ == "__main__":
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         image_np = np.array(image)
         window.display_edge(image_np)
-
-
 
     sys.exit(app.exec_())

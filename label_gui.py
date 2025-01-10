@@ -88,6 +88,10 @@ class Window(QWidget):
         self.btn_get_imagefiles = QPushButton("文件路径")
         self.btn_get_imagefiles.clicked.connect(self.on_btn_filePath_select)
         label_layout.addWidget(self.btn_get_imagefiles)
+        
+        self.btn_label_hyper_image = QPushButton("标注所有高光谱")
+        self.btn_label_hyper_image.clicked.connect(self.on_label_hyper_image_clicked)
+        label_layout.addWidget(self.btn_label_hyper_image)
         middle_layout.addLayout(label_layout)
         
         self.imgviewer = ImageViewer()
@@ -259,7 +263,46 @@ class Window(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "保存失败", f"保存光谱数据时出错：\n{str(e)}")
         
+    def on_label_hyper_image_clicked(self):
+        file_folder = self.edit_remote_path.text()
+        hyper_fileList = []
         
+        for root, dirs, files in os.walk(file_folder):
+            for file in files:
+                if file.endswith('.hdr'):
+                    hyper_fileList.append(os.path.join(root, file))
+        
+        if len(hyper_fileList) == 0:
+            QMessageBox.warning(self, "警告", "未找到任何HDR文件！")
+            return
+        
+        save_path = os.path.join(file_folder, 'hyper_data')
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+            
+        for path in hyper_fileList:
+            basename = os.path.basename(path).split('.')[0]
+            data_cube, rgb_image, hyper_sprectrumList = self.hyperData.read_hdr_file(path)
+            height, width = rgb_image.shape[:2]
+            mask_mat = self.samprocessor.process_image_box(rgb_image, [0, 0, width, height])
+            mask_mat, show_mat = self.samprocessor.get_used_show_image(rgb_image, mask_mat, 25, 100)
+            mean, max_, min_ = self.hyperData.extract_band(data_cube, mask_mat)
+            
+            csv_path = os.path.join(save_path, basename + '.csv')
+            show_path = os.path.join(save_path, basename + '.jpg')
+            # 将numpy数组转换为PIL图像并保存
+            save_image = cv2.cvtColor(show_mat, cv2.COLOR_BGR2RGB)
+            show_image = Image.fromarray(save_image)
+            show_image.save(show_path)
+            
+            data = np.vstack((hyper_sprectrumList, mean, min_, max_))
+            data = data.T   
+            header = "波长(nm),平均光谱,最小光谱,最大光谱"
+            np.savetxt(csv_path, data, delimiter=',', header=header, comments='', fmt='%.4f')
+        
+        QMessageBox.information(self, "保存成功", f"光谱数据已成功保存到：\n{save_path}")
+            
+                    
 
     def on_btn_sam_label(self):
         posipts, negepts = self.imgviewer.get_label_pts()
